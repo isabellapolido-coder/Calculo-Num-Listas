@@ -1,0 +1,232 @@
+
+import math
+import matplotlib.pyplot as plt
+
+# MÉTODOS NUMÉRICOS PARA RESOLUÇÃO DE EDOs
+
+def euler(f, t0, y0, h, n):
+    t, y = t0, y0
+    resultados = [(t, y)]
+
+    for _ in range(n):
+        y = y + h * f(t, y)
+        t += h
+        resultados.append((t, y))
+
+    return resultados
+
+
+def heun(f, t0, y0, h, n):
+    t, y = t0, y0
+    resultados = [(t, y)]
+
+    for _ in range(n):
+        k1 = f(t, y)
+        k2 = f(t + h, y + h * k1)
+
+        y = y + (h / 2) * (k1 + k2)
+        t += h
+        resultados.append((t, y))
+
+    return resultados
+
+
+def ponto_medio(f, t0, y0, h, n):
+    t, y = t0, y0
+    resultados = [(t, y)]
+
+    for _ in range(n):
+        k1 = f(t, y)
+        k2 = f(t + h / 2, y + (h / 2) * k1)
+
+        y = y + h * k2
+        t += h
+        resultados.append((t, y))
+
+    return resultados
+
+
+def rk4(f, t0, y0, h, n):
+    t, y = t0, y0
+    resultados = [(t, y)]
+
+    for _ in range(n):
+        k1 = f(t, y)
+        k2 = f(t + h / 2, y + h * k1 / 2)
+        k3 = f(t + h / 2, y + h * k2 / 2)
+        k4 = f(t + h, y + h * k3)
+
+        y = y + (h / 6) * (k1 + 2*k2 + 2*k3 + k4)
+        t += h
+        resultados.append((t, y))
+
+    return resultados
+
+
+def imprimir_tabela(titulo, resultados):
+    print(f"\n{titulo}")
+    print("-" * 32)
+    print(f"{'t':>10} {'y aproximado':>18}")
+
+    for t, y in resultados:
+        print(f"{t:10.2f} {y:18.8f}")
+
+# QUESTÃO 1 - IMPLEMENTAÇÃO DOS QUATRO MÉTODOS
+
+def questao_1():
+
+    print("\n========== QUESTÃO 1 ==========")
+
+    # PVI utilizado como exemplo:
+    # y' = -y + t + 1
+    # y(0) = 1
+
+    def f(t, y):
+        return -y + t + 1
+
+    t0 = 0.0
+    y0 = 1.0
+    h = 0.1
+    n = 10
+
+    metodos = {
+        "Euler": euler(f, t0, y0, h, n),
+        "Heun": heun(f, t0, y0, h, n),
+        "Ponto Médio": ponto_medio(f, t0, y0, h, n),
+        "RK4": rk4(f, t0, y0, h, n)
+    }
+
+    for nome, resultados in metodos.items():
+        imprimir_tabela(nome, resultados)
+
+    tempos = [p[0] for p in metodos["Euler"]]
+    exata = [math.exp(-t) + t for t in tempos]
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(tempos, exata, label="Solução exata", linewidth=2)
+
+    for nome, resultados in metodos.items():
+        ys = [p[1] for p in resultados]
+        plt.plot(tempos, ys, marker="o", label=nome)
+
+    plt.title("Q1 - Comparação dos métodos numéricos")
+    plt.xlabel("t")
+    plt.ylabel("y(t)")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("q1_comparacao_metodos.png")
+    plt.show()
+
+# QUESTÃO 2 - MÉTODO DE EULER
+
+def questao_2():
+
+    print("\n========== QUESTÃO 2 ==========")
+
+    # y' = -y + t + 1
+    # y(0) = 1
+    # Intervalo: 0 <= t <= 5
+
+    def f(t, y):
+        return -y + t + 1
+
+    def solucao_exata(t):
+        return math.exp(-t) + t
+
+    t0 = 0.0
+    y0 = 1.0
+    tf = 5.0
+
+    passos = [0.2, 0.1, 0.05]
+    resultados_por_passo = {}
+
+    print(f"Solução exata em t=5: {solucao_exata(5):.10f}")
+
+    print("\nComparação dos resultados:")
+    print(f"{'h':>8} {'Euler y(5)':>18} {'Erro absoluto':>18}")
+
+    for h in passos:
+
+        n = round((tf - t0) / h)
+
+        resultados = euler(f, t0, y0, h, n)
+
+        aproximacao = resultados[-1][1]
+        erro = abs(solucao_exata(tf) - aproximacao)
+
+        resultados_por_passo[h] = resultados
+
+        print(f"{h:8.2f} {aproximacao:18.10f} {erro:18.10f}")
+
+    tempos = [i * 0.01 for i in range(501)]
+    valores_exatos = [solucao_exata(t) for t in tempos]
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(tempos, valores_exatos,
+             label="Solução exata", linewidth=2)
+
+    for h, resultados in resultados_por_passo.items():
+
+        ts = [p[0] for p in resultados]
+        ys = [p[1] for p in resultados]
+
+        plt.plot(ts, ys, marker=".", label=f"Euler h={h}")
+
+    plt.title("Q2 - Método de Euler para diferentes passos")
+    plt.xlabel("t")
+    plt.ylabel("y(t)")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("q2_euler_comparacao.png")
+    plt.show()
+
+# QUESTÃO 3 - MÉTODO RUNGE-KUTTA DE QUARTA ORDEM
+
+def questao_3():
+
+    print("\n========== QUESTÃO 3 ==========")
+
+    # dy/dx = (5x² - y) / e^(x+y)
+    # y(0) = 1
+    # Intervalo: 0 <= x <= 1
+
+    def f(x, y):
+        return (5 * x**2 - y) / math.exp(x + y)
+
+    x0 = 0.0
+    y0 = 1.0
+    xf = 1.0
+    h = 0.1
+
+    n = round((xf - x0) / h)
+
+    resultados = rk4(f, x0, y0, h, n)
+
+    imprimir_tabela("Q3 - Resultados RK4", resultados)
+
+    print(f"\nAproximação final: y(1) = {resultados[-1][1]:.10f}")
+
+    xs = [p[0] for p in resultados]
+    ys = [p[1] for p in resultados]
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(xs, ys, marker="o", label="RK4 (h=0.1)")
+
+    plt.title("Q3 - Solução numérica pelo método RK4")
+    plt.xlabel("x")
+    plt.ylabel("y(x)")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("q3_solucao_rk4.png")
+    plt.show()
+
+# EXECUÇÃO PRINCIPAL
+
+if __name__ == "__main__":
+
+    questao_1()
+    questao_2()
+    questao_3()
